@@ -2,3 +2,5 @@ __pycache__/
 *.pyc
 credentials.json
 token.json
+.claude/settings.local.json
+CLAUDE.md

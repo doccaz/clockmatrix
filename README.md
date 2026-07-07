@@ -83,7 +83,6 @@ to `/settings.json` on the Pico's flash and reload at boot. Meetings are
 
 ```
 clockmatrix/
-├── CLAUDE.md            ← architecture notes for AI-assisted development
 ├── clockmatrix.py       ← the entire device firmware (single file)
 ├── push_to_clock.py     ← PC-side companion: pushes time/messages/alarms/
 │                           calendar meetings over USB serial
@@ -163,9 +162,6 @@ python push_to_clock.py -p /dev/ttyACM0 alarm 07:30
 
 `credentials.json` and `token.json` are gitignored; never commit them.
 
-## Development
+## License
 
-See [`CLAUDE.md`](CLAUDE.md) for the full architecture writeup: the UI state
-machine, matrix rendering/wiring quirks, persisted settings schema, and
-serial protocol details — written for both human contributors and
-AI-assisted development with Claude Code.
+Licensed under the [GNU GPLv3](LICENSE).
