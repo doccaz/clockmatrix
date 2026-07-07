@@ -1,3 +1,6 @@
+# Copyright (C) 2026 Erico Mendonca <erico.mendonca@gmail.com>
+# Licensed under the GNU General Public License v3.0. See LICENSE for details.
+#
 # clockmatrix.py -- MicroPython for Raspberry Pi Pico
 # Combination clock / meeting clock / alarm / message display.
 #

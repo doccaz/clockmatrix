@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+# Copyright (C) 2026 Erico Mendonca <erico.mendonca@gmail.com>
+# Licensed under the GNU General Public License v3.0. See LICENSE for details.
 """
 push_to_clock.py -- companion for the Pico meeting clock (runs on your PC).
 
