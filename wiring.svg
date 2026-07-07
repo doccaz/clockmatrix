@@ -1,0 +1,129 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1040" height="780" viewBox="0 0 1040 780" font-family="Menlo,Consolas,monospace">
+  <rect width="1040" height="780" fill="#0f1420"/>
+  <text x="30" y="42" fill="#e8eefc" font-size="22" font-weight="bold">Pi Pico — Meeting Clock / Alarm / Message Display</text>
+  <text x="30" y="66" fill="#7f8db0" font-size="14">8× MAX7219 (2×4 = 32×16, display-only) · SSD1306 OLED menu · DS3231 RTC · rotary encoder+button · piezo buzzer</text>
+
+  <!-- Legend -->
+  <g font-size="13">
+    <rect x="720" y="30" width="14" height="14" fill="#e5484d"/><text x="740" y="42" fill="#c3cbe0">5 V</text>
+    <rect x="790" y="30" width="14" height="14" fill="#f5a623"/><text x="810" y="42" fill="#c3cbe0">3V3</text>
+    <rect x="850" y="30" width="14" height="14" fill="#8a94ad"/><text x="870" y="42" fill="#c3cbe0">GND</text>
+    <rect x="915" y="30" width="14" height="14" fill="#4cc2ff"/><text x="935" y="42" fill="#c3cbe0">signal</text>
+  </g>
+
+  <!-- Pico board -->
+  <rect x="60" y="150" width="200" height="470" rx="14" fill="#1b2436" stroke="#3a4a6b" stroke-width="2"/>
+  <text x="160" y="180" fill="#e8eefc" font-size="18" text-anchor="middle" font-weight="bold">Pi Pico</text>
+  <text x="160" y="200" fill="#7f8db0" font-size="12" text-anchor="middle">USB ↑</text>
+
+  <!-- Pin rows: label = physical pin / GP name -->
+  <g font-size="13" fill="#c3cbe0">
+    <!-- left side pins used -->
+    <circle cx="248" cy="230" r="5" fill="#f5a623"/><text x="86" y="234">36  3V3 OUT</text>
+    <circle cx="248" cy="258" r="5" fill="#8a94ad"/><text x="86" y="262">38  GND</text>
+    <circle cx="248" cy="286" r="5" fill="#4cc2ff"/><text x="86" y="290">40  VBUS (5V)</text>
+
+    <circle cx="248" cy="330" r="5" fill="#4cc2ff"/><text x="86" y="334">1   GP0  SDA</text>
+    <circle cx="248" cy="356" r="5" fill="#4cc2ff"/><text x="86" y="360">2   GP1  SCL</text>
+    <circle cx="248" cy="382" r="5" fill="#4cc2ff"/><text x="86" y="386">4   GP2  SCK</text>
+    <circle cx="248" cy="408" r="5" fill="#4cc2ff"/><text x="86" y="412">5   GP3  DIN</text>
+    <circle cx="248" cy="434" r="5" fill="#4cc2ff"/><text x="86" y="438">7   GP5  CS</text>
+
+    <circle cx="248" cy="478" r="5" fill="#4cc2ff"/><text x="86" y="482">20  GP15 BUZZ</text>
+    <circle cx="248" cy="504" r="5" fill="#4cc2ff"/><text x="86" y="508">21  GP16 ENC-A</text>
+    <circle cx="248" cy="530" r="5" fill="#4cc2ff"/><text x="86" y="534">22  GP17 ENC-B</text>
+    <circle cx="248" cy="556" r="5" fill="#4cc2ff"/><text x="86" y="560">24  GP18 ENC-SW</text>
+    <circle cx="248" cy="582" r="5" fill="#4cc2ff"/><text x="86" y="586">25  GP19 BACK-BTN</text>
+  </g>
+
+  <!-- ===== 5V supply ===== -->
+  <rect x="330" y="150" width="180" height="90" rx="10" fill="#241a1a" stroke="#e5484d" stroke-width="2"/>
+  <text x="420" y="180" fill="#ff9a9d" font-size="15" text-anchor="middle" font-weight="bold">5 V PSU  (≥3 A)</text>
+  <text x="420" y="202" fill="#c3cbe0" font-size="12" text-anchor="middle">powers the 8 panels</text>
+  <text x="420" y="222" fill="#7f8db0" font-size="11" text-anchor="middle">common GND with Pico</text>
+
+  <!-- ===== MAX7219 chain 2x4 ===== -->
+  <text x="600" y="185" fill="#e8eefc" font-size="15" font-weight="bold">MAX7219 chain — snake order</text>
+  <g>
+    <!-- top row L->R : 1 2 3 4 -->
+    <rect x="600" y="200" width="70" height="70" fill="#20304a" stroke="#4a5f8a"/><text x="635" y="242" fill="#dfe7fb" font-size="20" text-anchor="middle">1</text>
+    <rect x="675" y="200" width="70" height="70" fill="#20304a" stroke="#4a5f8a"/><text x="710" y="242" fill="#dfe7fb" font-size="20" text-anchor="middle">2</text>
+    <rect x="750" y="200" width="70" height="70" fill="#20304a" stroke="#4a5f8a"/><text x="785" y="242" fill="#dfe7fb" font-size="20" text-anchor="middle">3</text>
+    <rect x="825" y="200" width="70" height="70" fill="#20304a" stroke="#4a5f8a"/><text x="860" y="242" fill="#dfe7fb" font-size="20" text-anchor="middle">4</text>
+    <!-- bottom row R->L : 5 6 7 8 (physically under, chain continues) -->
+    <rect x="600" y="272" width="70" height="70" fill="#20304a" stroke="#4a5f8a"/><text x="635" y="314" fill="#dfe7fb" font-size="20" text-anchor="middle">8</text>
+    <rect x="675" y="272" width="70" height="70" fill="#20304a" stroke="#4a5f8a"/><text x="710" y="314" fill="#dfe7fb" font-size="20" text-anchor="middle">7</text>
+    <rect x="750" y="272" width="70" height="70" fill="#20304a" stroke="#4a5f8a"/><text x="785" y="314" fill="#dfe7fb" font-size="20" text-anchor="middle">6</text>
+    <rect x="825" y="272" width="70" height="70" fill="#20304a" stroke="#4a5f8a"/><text x="860" y="314" fill="#dfe7fb" font-size="20" text-anchor="middle">5</text>
+    <!-- chain arrows -->
+    <text x="670" y="360" fill="#7f8db0" font-size="11">DIN enters module 1 → out to 2 → 3 → 4 → 5 → … → 8</text>
+    <text x="600" y="376" fill="#7f8db0" font-size="11">wire top row left→right, drop down, bottom row right→left (rotated 180° in code)</text>
+  </g>
+  <text x="600" y="200" fill="#8a94ad" font-size="11"></text>
+  <text x="920" y="212" fill="#c3cbe0" font-size="12">VCC→5V</text>
+  <text x="920" y="228" fill="#c3cbe0" font-size="12">GND→GND</text>
+  <text x="920" y="244" fill="#c3cbe0" font-size="12">DIN→GP3</text>
+  <text x="920" y="260" fill="#c3cbe0" font-size="12">CS →GP5</text>
+  <text x="920" y="276" fill="#c3cbe0" font-size="12">CLK→GP2</text>
+
+  <!-- ===== DS3231 ===== -->
+  <rect x="330" y="300" width="150" height="86" rx="10" fill="#1b2a24" stroke="#3aa981" stroke-width="2"/>
+  <text x="405" y="326" fill="#7ff0c0" font-size="15" text-anchor="middle" font-weight="bold">DS3231 RTC</text>
+  <text x="405" y="348" fill="#c3cbe0" font-size="12" text-anchor="middle">VCC→3V3  GND→GND</text>
+  <text x="405" y="366" fill="#c3cbe0" font-size="12" text-anchor="middle">SDA→GP0  SCL→GP1</text>
+
+  <!-- ===== Rotary encoder ===== -->
+  <rect x="330" y="430" width="150" height="104" rx="10" fill="#241f2e" stroke="#9a6cff" stroke-width="2"/>
+  <text x="405" y="456" fill="#c9b3ff" font-size="15" text-anchor="middle" font-weight="bold">Rotary encoder</text>
+  <text x="405" y="478" fill="#c3cbe0" font-size="12" text-anchor="middle">+→3V3   GND→GND</text>
+  <text x="405" y="496" fill="#c3cbe0" font-size="12" text-anchor="middle">CLK→GP16  DT→GP17</text>
+  <text x="405" y="514" fill="#c3cbe0" font-size="12" text-anchor="middle">SW →GP18</text>
+
+  <!-- ===== Back button ===== -->
+  <rect x="330" y="556" width="150" height="70" rx="10" fill="#2a2418" stroke="#c9a227" stroke-width="2"/>
+  <text x="405" y="582" fill="#ffe08a" font-size="15" text-anchor="middle" font-weight="bold">Back button</text>
+  <text x="405" y="604" fill="#c3cbe0" font-size="12" text-anchor="middle">GP19 ── button ── GND</text>
+
+  <!-- ===== Buzzer ===== -->
+  <rect x="560" y="430" width="150" height="70" rx="10" fill="#2a1c22" stroke="#e5679a" stroke-width="2"/>
+  <text x="635" y="456" fill="#ffa8cb" font-size="15" text-anchor="middle" font-weight="bold">Piezo buzzer</text>
+  <text x="635" y="478" fill="#c3cbe0" font-size="12" text-anchor="middle">+→GP15   −→GND</text>
+
+  <!-- ===== SSD1306 OLED ===== -->
+  <rect x="730" y="430" width="220" height="104" rx="10" fill="#182430" stroke="#4cc2ff" stroke-width="2"/>
+  <text x="840" y="456" fill="#a9e2ff" font-size="15" text-anchor="middle" font-weight="bold">SSD1306 OLED (menu)</text>
+  <text x="840" y="478" fill="#c3cbe0" font-size="12" text-anchor="middle">VCC→3V3   GND→GND</text>
+  <text x="840" y="496" fill="#c3cbe0" font-size="12" text-anchor="middle">SDA→GP0   SCL→GP1</text>
+  <text x="840" y="516" fill="#7f8db0" font-size="11" text-anchor="middle">shares I2C with DS3231 · addr 0x3C</text>
+
+  <!-- wires from Pico -->
+  <g stroke-width="2.5" fill="none" opacity="0.9">
+    <!-- 3V3 to DS3231 & encoder -->
+    <path d="M253 230 H300 V320 H330" stroke="#f5a623"/>
+    <path d="M300 320 V452 H330" stroke="#f5a623"/>
+    <!-- 5V PSU to matrices & PSU gnd to pico -->
+    <path d="M420 240 V196 H600" stroke="#e5484d"/>
+    <path d="M253 286 H300 V150" stroke="#e5484d" opacity="0.5" stroke-dasharray="5 4"/>
+    <!-- GND rail -->
+    <path d="M253 258 H285 V636 H900" stroke="#8a94ad"/>
+    <!-- I2C -->
+    <path d="M253 330 H320 V330 H330" stroke="#4cc2ff"/>
+    <path d="M253 356 H316 V356 H330" stroke="#4cc2ff"/>
+    <!-- SPI to matrices -->
+    <path d="M253 382 H300 V396 H540 V214 H600" stroke="#4cc2ff"/>
+    <path d="M253 408 H525 V230 H600" stroke="#4cc2ff"/>
+    <path d="M253 434 V420 H510 V246 H600" stroke="#4cc2ff"/>
+    <!-- buzzer -->
+    <path d="M253 478 H300 V424 H520 V478 H560" stroke="#4cc2ff"/>
+    <!-- encoder signals -->
+    <path d="M253 504 H326 V492 H330" stroke="#4cc2ff"/>
+    <path d="M253 530 H322 V504 H330" stroke="#4cc2ff"/>
+    <path d="M253 556 H318 V516 H330" stroke="#4cc2ff"/>
+    <!-- back button -->
+    <path d="M253 582 H330" stroke="#4cc2ff"/>
+  </g>
+
+  <text x="30" y="700" fill="#e5484d" font-size="13">⚠ Power the 8 panels from the 5 V PSU, NOT the Pico 3V3. Tie PSU ground to Pico ground.</text>
+  <text x="30" y="722" fill="#7f8db0" font-size="12">First boot: if the image is scrambled/mirrored, adjust module order + rotation in Matrix.show(). Set time once via USB:  T15:30:00</text>
+  <text x="30" y="744" fill="#7f8db0" font-size="12">Encoder rotate = navigate/edit · press = select · Back button = cancel/backspace</text>
+</svg>
