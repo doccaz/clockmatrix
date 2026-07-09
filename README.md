@@ -73,9 +73,13 @@ Rotating into the menu from the dashboard gives access to:
 - **Ticker Clock** — Off / Time / Time+Date / Time+Date+Day, controls whether
   the current date & time also scroll in the matrix ticker alongside
   meetings and messages
+- **Alarm Timeout** — how long a ringing alarm keeps sounding before it stops
+  on its own (default 1 min, adjustable in 15 s steps up to 10 min; `0` means
+  ring until dismissed). Any key still stops it early.
 
-Alarms, custom/quick messages, brightness, and the ticker-clock mode persist
-to `/settings.json` on the Pico's flash and reload at boot. Meetings are
+Alarms, custom/quick messages, brightness, the ticker-clock mode, and the
+alarm timeout persist to `/settings.json` on the Pico's flash and reload at
+boot. Meetings are
 **not** persisted — they're expected to be re-synced daily from
 `push_to_clock.py`.
 

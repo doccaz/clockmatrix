@@ -126,10 +126,12 @@ class State:
         self.alarms   = []            # [(h, m), ...]
         self.meetings = []            # [(h, m, label), ...]
         self.alarm_firing = False
+        self.alarm_start = 0          # tick_ms the current alarm started ringing
+        self.alarm_timeout = 60       # auto-stop after this many s (0 = never)
         self.brightness = 10          # fixed level for a lit room
         self.ticker_clock = 1         # index into TICKER_CLOCK_MODES
         self.scroll_x = W
-        self.ui = 'dash'              # dash|menu|edit|type|preset|bright|tclock
+        self.ui = 'dash'              # dash|menu|edit|type|preset|bright|tclock|atimeout
         self.menu_idx = 0
         self.edit = [0, 0]; self.edit_field = 0; self.edit_target = None
         self.buf = ""; self.pick = 0; self.type_target = None; self.pending = None
@@ -142,10 +144,12 @@ S = State()
 OLED_SAVER_MS = 30_000            # blank OLED after this much idle time
 BLIP_MS       = 40                # length of the encoder feedback "tick"
 BLIP_FREQ     = 3200              # distinct from the 2000 Hz alarm tone
+ALARM_TIMEOUT_MAX  = 600          # cap the configurable auto-stop at 10 min
+ALARM_TIMEOUT_STEP = 15           # adjust the auto-stop in 15 s increments
 
-MENU_IDS    = ["time", "date", "alarm", "mtg", "msg", "preset", "bright", "tclock", "exit"]
+MENU_IDS    = ["time", "date", "alarm", "mtg", "msg", "preset", "bright", "tclock", "atimeout", "exit"]
 MENU_LABELS = ["Set Time", "Set Date", "Add Alarm", "Add Meeting", "New Message",
-               "Quick Message", "Brightness", "Ticker Clock", "Exit"]
+               "Quick Message", "Brightness", "Ticker Clock", "Alarm Timeout", "Exit"]
 PICK = list("ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 .,!?-<>")  # '<'=bksp '>'=done
 PRESETS = ["Back in 5 min", "In a meeting", "Lunch break", "Do not disturb",
            "BRB", "Gone for the day", "Happy Birthday!", "On a call"]
@@ -176,7 +180,8 @@ def save_settings():
         with open(SETTINGS_FILE, "w") as f:
             ujson.dump({"alarms": S.alarms, "messages": S.messages,
                         "brightness": S.brightness,
-                        "ticker_clock": S.ticker_clock}, f)
+                        "ticker_clock": S.ticker_clock,
+                        "alarm_timeout": S.alarm_timeout}, f)
     except OSError:
         pass
 
@@ -188,6 +193,7 @@ def load_settings():
         S.messages     = list(d.get("messages", []))
         S.brightness   = d.get("brightness", S.brightness)
         S.ticker_clock = d.get("ticker_clock", S.ticker_clock)
+        S.alarm_timeout = d.get("alarm_timeout", S.alarm_timeout)
     except (OSError, ValueError):
         pass
 
@@ -234,6 +240,12 @@ def next_alarm():
     now = S.h * 60 + S.m
     return min(S.alarms, key=lambda a: (a[0] * 60 + a[1] - now) % (24 * 60))
 
+def fmt_timeout(sec):
+    if sec == 0:  return "Until dismissed"
+    if sec < 60:  return "%d s" % sec
+    if sec % 60:  return "%d m %d s" % (sec // 60, sec % 60)
+    return "%d min" % (sec // 60)
+
 def build_ticker():
     parts = []
     c = ticker_clock_str()
@@ -261,9 +273,15 @@ async def alarm_task():
         match   = any(a[0] == S.h and a[1] == S.m for a in S.alarms)
         if match and S.s < 2 and fired_key != now_key:
             S.alarm_firing = True
+            S.alarm_start = time.ticks_ms()
             fired_key = now_key
         elif not match:
             fired_key = None
+        # Auto-stop after the configured timeout (0 = ring until dismissed).
+        # fired_key still guards against re-firing within the same minute.
+        if S.alarm_firing and S.alarm_timeout and \
+           time.ticks_diff(time.ticks_ms(), S.alarm_start) >= S.alarm_timeout * 1000:
+            S.alarm_firing = False
         await asyncio.sleep_ms(400)
 
 async def serial_task(rtc):
@@ -338,6 +356,7 @@ def ui_select(rtc):
         elif it == "preset": start_preset()
         elif it == "bright": S.ui = 'bright'
         elif it == "tclock": S.ui = 'tclock'
+        elif it == "atimeout": S.ui = 'atimeout'
         elif it == "exit":  S.ui = 'dash'
     elif S.ui == 'edit':
         if S.edit_field < len(EDIT_SPECS[S.edit_target]) - 1:
@@ -353,6 +372,7 @@ def ui_select(rtc):
         S.messages.append(PRESETS[S.preset_idx]); save_settings(); S.ui = 'dash'
     elif S.ui == 'bright': save_settings(); S.ui = 'dash'
     elif S.ui == 'tclock': save_settings(); S.ui = 'dash'
+    elif S.ui == 'atimeout': save_settings(); S.ui = 'dash'
     elif S.ui == 'dash':   S.ui = 'menu'
 
 def ui_done(rtc):
@@ -361,11 +381,11 @@ def ui_done(rtc):
     if   S.ui == 'edit':          _finish_edit(rtc)
     elif S.ui == 'type':          _finish_type()
     elif S.ui == 'preset':        S.messages.append(PRESETS[S.preset_idx]); save_settings(); S.ui = 'dash'
-    elif S.ui in ('bright', 'tclock'): save_settings(); S.ui = 'dash'
+    elif S.ui in ('bright', 'tclock', 'atimeout'): save_settings(); S.ui = 'dash'
     elif S.ui == 'menu':          S.ui = 'dash'
 
 def ui_back():
-    if   S.ui in ('menu', 'bright', 'tclock'): S.ui = 'dash'
+    if   S.ui in ('menu', 'bright', 'tclock', 'atimeout'): S.ui = 'dash'
     elif S.ui == 'preset': S.ui = 'menu'
     elif S.ui == 'edit':
         if S.edit_field > 0: S.edit_field -= 1
@@ -385,6 +405,9 @@ def ui_rotate(step):
     elif S.ui == 'preset': S.preset_idx = (S.preset_idx + step) % len(PRESETS)
     elif S.ui == 'bright': S.brightness = max(0, min(15, S.brightness + step))
     elif S.ui == 'tclock': S.ticker_clock = (S.ticker_clock + step) % len(TICKER_CLOCK_MODES)
+    elif S.ui == 'atimeout':
+        S.alarm_timeout = max(0, min(ALARM_TIMEOUT_MAX,
+                                     S.alarm_timeout + step * ALARM_TIMEOUT_STEP))
 
 async def ui_task(rtc):
     global enc_delta
@@ -508,6 +531,13 @@ def oled_tclock(o):
     o.text(preview, _center_x(preview), 36)
     o.text("rotate  press>", 0, 56)
 
+def oled_atimeout(o):
+    oled_title(o, "Alarm Timeout")
+    val = fmt_timeout(S.alarm_timeout)
+    o.text(val, _center_x(val), 22)
+    o.text("0 = ring until off", 0, 40)
+    o.text("rotate  press>", 0, 56)
+
 def oled_alarm(o, blink):
     if blink: o.fill(1); return
     t1, t2 = "*** ALARM ***", "any key = stop"
@@ -556,6 +586,7 @@ async def render_oled(oled):
             elif S.ui == 'preset': oled_preset(oled)
             elif S.ui == 'bright': oled_bright(oled)
             elif S.ui == 'tclock': oled_tclock(oled)
+            elif S.ui == 'atimeout': oled_atimeout(oled)
             oled.show()
         await asyncio.sleep_ms(60)
 
