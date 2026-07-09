@@ -136,9 +136,12 @@ class State:
         self.preset_idx = 0
         self.last_input = time.ticks_ms()
         self.oled_on = True
+        self.blip_until = 0       # buzzer "tick" feedback active until this tick_ms
 S = State()
 
 OLED_SAVER_MS = 30_000            # blank OLED after this much idle time
+BLIP_MS       = 40                # length of the encoder feedback "tick"
+BLIP_FREQ     = 3200              # distinct from the 2000 Hz alarm tone
 
 MENU_IDS    = ["time", "date", "alarm", "mtg", "msg", "preset", "bright", "tclock", "exit"]
 MENU_LABELS = ["Set Time", "Set Date", "Add Alarm", "Add Meeting", "New Message",
@@ -223,6 +226,14 @@ def handle_cmd(rtc, line):
     except Exception:
         pass
 
+def next_alarm():
+    """The alarm that will fire soonest from the current time, wrapping past
+    midnight. Alarms are daily (HH:MM only), so this is what the user cares
+    about -- and it always reflects an alarm you just added for later today."""
+    if not S.alarms: return None
+    now = S.h * 60 + S.m
+    return min(S.alarms, key=lambda a: (a[0] * 60 + a[1] - now) % (24 * 60))
+
 def build_ticker():
     parts = []
     c = ticker_clock_str()
@@ -240,8 +251,19 @@ async def clock_task(rtc):
         await asyncio.sleep_ms(250)
 
 async def alarm_task():
+    # Latch the alarm on when the clock first hits a matching minute, and leave
+    # it ringing until the user dismisses it (any key -> S.alarm_firing = False).
+    # `fired_key` keeps it from re-triggering later in the same minute after a
+    # dismissal, while still allowing the same time to fire again tomorrow.
+    fired_key = None
     while True:
-        S.alarm_firing = any(a[0] == S.h and a[1] == S.m and S.s < 2 for a in S.alarms)
+        now_key = (S.h, S.m)
+        match   = any(a[0] == S.h and a[1] == S.m for a in S.alarms)
+        if match and S.s < 2 and fired_key != now_key:
+            S.alarm_firing = True
+            fired_key = now_key
+        elif not match:
+            fired_key = None
         await asyncio.sleep_ms(400)
 
 async def serial_task(rtc):
@@ -382,6 +404,7 @@ async def ui_task(rtc):
             else: ui_back()
         if d or ev or back:
             S.last_input = time.ticks_ms()
+            S.blip_until = time.ticks_add(S.last_input, BLIP_MS)  # audible tick
         await asyncio.sleep_ms(30)
 
 # --------------------------- OLED UI rendering ---------------------------
@@ -421,9 +444,11 @@ def oled_dash(o):
         o.text("Next: %02d:%02d %s" % (nh, nm, lbl[:10]), 0, 38)
     else:
         o.text("No meetings", 0, 38)
-    if S.alarms:
-        ah, am = sorted(S.alarms)[0]
-        o.text("Alarm: %02d:%02d" % (ah, am), 0, 47)
+    nxt = next_alarm()
+    if nxt:
+        ah, am = nxt
+        more = (" +%d" % (len(S.alarms) - 1)) if len(S.alarms) > 1 else ""
+        o.text("Alarm: %02d:%02d%s" % (ah, am, more), 0, 47)
     else:
         o.text("No alarm set", 0, 47)
     o.text("[press] menu", _center_x("[press] menu"), 56)
@@ -499,7 +524,8 @@ async def render_matrix(disp):
             if blink: disp.fb.fill(1)
             beep(blink)
         else:
-            beep(False)
+            blipping = time.ticks_diff(S.blip_until, time.ticks_ms()) > 0
+            beep(blipping, BLIP_FREQ)
             draw_hhmm(disp.fb, S.h, S.m, (S.s % 2) == 0)
             t = build_ticker()
             if t:
